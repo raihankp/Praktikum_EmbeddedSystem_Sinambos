@@ -41,12 +41,6 @@
 #define USART_SERIAL_STOP_BIT            false
 
 static char strbuf[201];
-static char reads[100];
-int result = 0;
-char in = 'x';
-
-char *str1 = "atas ";
-char *str2 = "bawah ";
 
 void setUpSerial()
 {
@@ -69,50 +63,14 @@ void setUpSerial()
     USARTC0_CTRLB = USART_TXEN_bm | USART_RXEN_bm; 
 }
 
-void sendChar(char c)
-{
-    while( !(USARTC0_STATUS & USART_DREIF_bm) ); //Wait until DATA buffer is empty
-    //delay_ms(20);
-    USARTC0_DATA = c;
-   
-}
-
 void sendString(char *text)
 {
     while(*text)
     {
-        //sendChar(*text++);
 		usart_putchar(USART_SERIAL_EXAMPLE, *text++);
 		delay_ms(20);
     }
 }
-
-char receiveChar()
-{
-    while( !(USARTC0_STATUS & USART_RXCIF_bm) ); //Wait until receive finish
-    return USARTC0_DATA;
-}
-
-void receiveString()
-{
-    int i = 0;
-    while(1){
-        //char inp = receiveChar();
-		char inp = usart_getchar(USART_SERIAL_EXAMPLE);
-        if(inp=='\n') break;
-        else reads[i++] = inp;
-    }
-	
-	if(strcmp(str1,reads) == 0){
-		gpio_set_pin_high(J2_PIN0);
-	}else if(strcmp(str2,reads) == 0){
-		gpio_set_pin_high(J2_PIN0);
-	}else{
-		gpio_set_pin_low(J2_PIN0);
-	}
-}
-
-
 
 int main (void)
 {
@@ -133,7 +91,8 @@ int main (void)
     PORTC_DIRCLR = PIN2_bm; //RX pin as input
    
     setUpSerial();
-	
+    
+    // Create USART Options
 	static usart_rs232_options_t USART_SERIAL_OPTIONS = {
 		.baudrate = USART_SERIAL_EXAMPLE_BAUDRATE,
 		.charlength = USART_SERIAL_CHAR_LENGTH,
@@ -141,41 +100,26 @@ int main (void)
 		.stopbits = USART_SERIAL_STOP_BIT
 	};
 	
+    // Init the USART
 	usart_init_rs232(USART_SERIAL_EXAMPLE, &USART_SERIAL_OPTIONS);
-	
-	// ioport_set_pin_dir(J2_PIN0, IOPORT_DIR_OUTPUT);
-
-	
-
 	   
     while(1){	   
         if(gpio_pin_is_low(GPIO_PUSH_BUTTON_1) && gpio_pin_is_high(GPIO_PUSH_BUTTON_2)){
+            // Turn LED 1 On and LED 2 Off if SW1 is pressed and send the string
             gpio_set_pin_low(LED1_GPIO);
             gpio_set_pin_high(LED2_GPIO);
-			// sendChar('u');
             sendString("LED 1 On LED 2 Off\n");
-			//usart_putchar(USART_SERIAL_EXAMPLE,'u');
         }else if(gpio_pin_is_low(GPIO_PUSH_BUTTON_2) && gpio_pin_is_high(GPIO_PUSH_BUTTON_1)){
+            // Turn LED 1 Off and LED 2 On if SW2 is pressed and send the string
             gpio_set_pin_low(LED2_GPIO);
             gpio_set_pin_high(LED1_GPIO);
-            // sendChar('d');
             sendString("LED 1 Off LED 2 On\n");
-			//usart_putchar(USART_SERIAL_EXAMPLE,'d');
         }else if(gpio_pin_is_high(GPIO_PUSH_BUTTON_1) && gpio_pin_is_high(GPIO_PUSH_BUTTON_2)){
+            // Turn LED 1 Off and LED 2 Off if no button is pressed and send the string
             gpio_set_pin_high(LED2_GPIO);
             gpio_set_pin_high(LED1_GPIO);
-            // sendChar('n');
             sendString("LED 1 Off LED 2 Off\n");
-			//usart_putchar(USART_SERIAL_EXAMPLE,'n');
         }
-       
-        //in = receiveChar();
-        // receiveString();
-		//in = usart_getchar(USART_SERIAL_EXAMPLE);
-		//reads[0] = in;
-       
-        //snprintf(strbuf, sizeof(strbuf), "Read USART : %3d",in);
-        //gfx_mono_draw_string(reads,0, 0, &sysfont);
         delay_ms(50);
     }
 }
